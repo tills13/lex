@@ -4,7 +4,7 @@ import Lexer from "./Lexer";
 import compileTokenGrammar from "./compileTokenGrammar";
 import parseTokenGrammar from "./parseTokenGrammar";
 
-const rawTokens = fs.readFileSync("./l.tokens", { encoding: "utf-8" });
+const rawTokens = fs.readFileSync("./example.tokens", { encoding: "utf-8" });
 // const input = fs.readFileSync("./input", { encoding: "utf-8" });
 
 const tokenGrammar = parseTokenGrammar(rawTokens);
