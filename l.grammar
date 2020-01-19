@@ -4,7 +4,7 @@ Program: Lines;
 
 Lines: Line+;
 
-Line: Statement TERMINATOR;
+Line: Statement ";";
 
 # Statement: AssignmentStatement;
 Statement: IfStatement;
@@ -29,8 +29,6 @@ Letter: [a-zA-Z];
 Letters: Letter+;
 
 Boolean: "true" | "false";
-
-Variable
 
 L_PARENS: "(";
 R_PARENS: ")";

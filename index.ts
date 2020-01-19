@@ -11,10 +11,6 @@ const tokenGrammar = parseTokenGrammar(rawTokens);
 const compiledTokenGrammar = compileTokenGrammar(tokenGrammar);
 
 const lexer = new Lexer(compiledTokenGrammar);
-const tokenStream = lexer.tokenize(`
-  // input program
-`);
+const tokenStream = lexer.tokenize(`-1.0 + 2 + -3`);
 
-console.log(
-  [...tokenStream.filter(t => t.offset < 50)].map(t => t.value).join("")
-);
+console.log(tokenStream);

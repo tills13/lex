@@ -2,48 +2,77 @@ import { CompiledTokenGrammar } from "./compileTokenGrammar";
 import Token from "./Token";
 import TokenStream from "./TokenStream";
 
+function maximumMatch(matches: Record<string, number>) {
+  let t: { matchToken: string; matchLength: number } | undefined;
+
+  for (let matchToken in matches) {
+    const matchLength = matches[matchToken];
+
+    if ((t && matchLength > t.matchLength) || matchLength > 0) {
+      t = { matchToken, matchLength: matchLength };
+    }
+  }
+
+  return t;
+}
+
+const ESCAPE_CHARACTERS = [" ", ";"];
+
 class Lexer {
   public constructor(private tokenGrammar: CompiledTokenGrammar) {}
 
   public tokenize(program: string): TokenStream {
     const tokenStream = new TokenStream();
-    const rules = Object.keys(this.tokenGrammar);
-    let index = 0;
 
-    let prevRulesMatched: Token[] = [];
-    let buffer = [];
+    let programBuffer = program.split("");
+    let startCursor: number = 0;
 
-    while (index < program.length) {
-      buffer.push(program.charAt(index));
-      const part = buffer.join("");
+    while (startCursor < programBuffer.length) {
+      const matches: Record<string, number> = {};
 
-      let currRulesMatched: Token[] = [];
+      let endCursor = startCursor;
 
-      for (let rule of rules) {
-        const rRule = this.tokenGrammar[rule];
+      // iterate through all substrings of `program` from
+      // startCursor to endCursor generating a map of tokens to
+      // the maximum length match
+      while (endCursor < programBuffer.length) {
+        const part = programBuffer.slice(startCursor, endCursor + 1).join("");
 
-        if (rRule.test(part)) {
-          currRulesMatched.push(new Token(rule, part, index - part.length + 1));
+        for (let tokenName in this.tokenGrammar) {
+          const match = this.tokenGrammar[tokenName];
+
+          if (match.test(part)) {
+            matches[tokenName] =
+              (matches[tokenName] ?? endCursor - startCursor) + 1;
+          }
         }
+
+        if (ESCAPE_CHARACTERS.includes(part)) {
+          break;
+        }
+
+        endCursor++;
       }
 
-      // console.log(currRulesMatched, prevRulesMatched);
+      const matchedToken = maximumMatch(matches);
 
-      // maximally match i.e. expand the selection until the # of matches goes
-      // down. ideally, the most specific rule would then be the match
-      if (currRulesMatched.length < prevRulesMatched.length) {
-        tokenStream.pushToken(prevRulesMatched.shift()!);
-
-        buffer = [];
-        prevRulesMatched = [];
-      } else {
-        prevRulesMatched = [...currRulesMatched];
-        index++;
+      if (!matchedToken) {
+        throw new Error(
+          `unexpected token ${programBuffer[startCursor]} at offset ${startCursor}`
+        );
       }
-    }
 
-    if (prevRulesMatched) {
-      tokenStream.pushToken(prevRulesMatched.shift()!);
+      tokenStream.pushToken(
+        new Token(
+          matchedToken.matchToken,
+          programBuffer
+            .slice(startCursor, startCursor + matchedToken.matchLength)
+            .join(""),
+          startCursor
+        )
+      );
+
+      startCursor = startCursor + matchedToken.matchLength;
     }
 
     return tokenStream;

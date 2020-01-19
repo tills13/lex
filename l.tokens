@@ -5,8 +5,8 @@ WS: [\t ]+;
 
 STRINGLITERAL: '[^']*' | \"[^\"]*\";
 TEMPLATESTRINGLITERAL: `[^`]*`;
-DECIMALLITERAL: [0-9]*\.[0-9]+;
-INTLITERAL: 0 | [1-9][0-9]*;
+DECIMALLITERAL: -?[0-9]*\.[0-9]+;
+INTLITERAL: 0 | -?[1-9][0-9]*;
 OCTALLITERAL: 0[0-9]+;
 
 TYPE: "any" | "number" | "string" | "object" | "interface";
@@ -31,7 +31,7 @@ BLOCK_COMMENT: /\*\*?.*?\*/;
 REGEXPEXPRESSION: /[^\/]+/[a-z]*;
 
 OPERATOR:
-  "=" | "*" | "-" | "+" |
+  "|" | "!" | "=" | "*" | "-" | "+" |
   "+=" | "-=" |
   "<" | ">" | ">=" | "<=" |
   "&&" | "||" | "<<" | ">>" |
