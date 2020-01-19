@@ -1,0 +1,7 @@
+## Lex
+
+Tokenizer written in TypeScript.
+
+Eventually I'd like this to include the full lexing toolchain.
+
+Edit the input string in `index.ts` and edit the token file `l.token` as you see fit.
