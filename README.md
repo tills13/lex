@@ -8,7 +8,7 @@ Edit the input string in `index.ts` and edit the token file `l.token` as you see
 
 ### Token Grammar
 
-A file containing Key:Value pairs describing what valid tokens are in the language to be parsed.
+Key:Value pairs describing valid tokens in the language to be parsed.
 
 The LHS is the name of the token e.g. `KEYWORD` or `INTLITERAL`.
 
