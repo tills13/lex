@@ -2,7 +2,7 @@ Parser written in TypeScript.
 
 Eventually I'd like this to include the full parser toolchain.
 
-Edit the input string in `index.ts` and edit the token file `l.token` as you see fit.
+Edit the input string in `index.ts` and edit the token file `example.tokens` as you see fit.
 
 ## Tokenizer
 
