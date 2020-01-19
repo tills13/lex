@@ -11,6 +11,9 @@ const tokenGrammar = parseTokenGrammar(rawTokens);
 const compiledTokenGrammar = compileTokenGrammar(tokenGrammar);
 
 const lexer = new Lexer(compiledTokenGrammar);
-const tokenStream = lexer.tokenize(`-1.0 + 2 + -3`);
+const tokenStream = lexer.tokenize(`
+const x = -10.5
+console.log("the answer to x + 2 is", x + 2)
+`);
 
-console.log(tokenStream);
+console.log([...tokenStream.filter(t => !(t.is("WS") || t.is("NEWLINE")))]);
