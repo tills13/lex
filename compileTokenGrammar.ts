@@ -28,7 +28,7 @@ export default function compileTokenGrammar(tokenGrammar: RawTokenGrammar) {
       .replace(/[ ]*\|[ ]*/g, "|")
       .replace(ESCAPED_PARENS_MARKER_REGEXP, '"');
 
-    compiledGrammar[rule] = new RegExp(`^(${mRule})$`);
+    compiledGrammar[rule] = new RegExp(`^(${mRule})`);
   });
 
   return compiledGrammar;

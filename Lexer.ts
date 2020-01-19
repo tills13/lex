@@ -2,21 +2,25 @@ import { CompiledTokenGrammar } from "./compileTokenGrammar";
 import Token from "./Token";
 import TokenStream from "./TokenStream";
 
-function maximumMatch(matches: Record<string, number>) {
+function maximumMatch(matches: Record<string, RegExpMatchArray | null>) {
   let t: { matchToken: string; matchLength: number } | undefined;
 
   for (let matchToken in matches) {
-    const matchLength = matches[matchToken];
+    const match = matches[matchToken];
 
-    if ((t && matchLength > t.matchLength) || matchLength > 0) {
-      t = { matchToken, matchLength: matchLength };
+    if (!match) {
+      continue;
+    }
+
+    const matchLength = match[0].length;
+
+    if ((t && matchLength > t.matchLength) || (!t && matchLength > 0)) {
+      t = { matchToken, matchLength };
     }
   }
 
   return t;
 }
-
-const ESCAPE_CHARACTERS = [" ", ";"];
 
 class Lexer {
   public constructor(private tokenGrammar: CompiledTokenGrammar) {}
@@ -24,55 +28,35 @@ class Lexer {
   public tokenize(program: string): TokenStream {
     const tokenStream = new TokenStream();
 
-    let programBuffer = program.split("");
-    let startCursor: number = 0;
+    let programBuffer = program;
+    let currentOffset = 0;
 
-    while (startCursor < programBuffer.length) {
-      const matches: Record<string, number> = {};
+    while (programBuffer) {
+      const matches: Record<string, RegExpMatchArray | null> = {};
 
-      let endCursor = startCursor;
-
-      // iterate through all substrings of `program` from
-      // startCursor to endCursor generating a map of tokens to
-      // the maximum length match
-      while (endCursor < programBuffer.length) {
-        const part = programBuffer.slice(startCursor, endCursor + 1).join("");
-
-        for (let tokenName in this.tokenGrammar) {
-          const match = this.tokenGrammar[tokenName];
-
-          if (match.test(part)) {
-            matches[tokenName] =
-              (matches[tokenName] ?? endCursor - startCursor) + 1;
-          }
-        }
-
-        if (ESCAPE_CHARACTERS.includes(part)) {
-          break;
-        }
-
-        endCursor++;
+      for (let tokenName in this.tokenGrammar) {
+        const matcher = this.tokenGrammar[tokenName];
+        matches[tokenName] = programBuffer.match(matcher);
       }
 
-      const matchedToken = maximumMatch(matches);
+      const match = maximumMatch(matches);
 
-      if (!matchedToken) {
+      if (!match) {
         throw new Error(
-          `unexpected token ${programBuffer[startCursor]} at offset ${startCursor}`
+          `unexpected token ${programBuffer[0]} at offset ${currentOffset}`
         );
       }
 
       tokenStream.pushToken(
         new Token(
-          matchedToken.matchToken,
-          programBuffer
-            .slice(startCursor, startCursor + matchedToken.matchLength)
-            .join(""),
-          startCursor
+          match.matchToken,
+          programBuffer.substring(0, match.matchLength),
+          currentOffset
         )
       );
 
-      startCursor = startCursor + matchedToken.matchLength;
+      programBuffer = programBuffer.substring(match.matchLength);
+      currentOffset += match.matchLength;
     }
 
     return tokenStream;
