@@ -16,4 +16,7 @@ const x = -10.5
 console.log("the answer to x + 2 is", x + 2)
 `);
 
-console.log([...tokenStream.filter(t => !(t.is("WS") || t.is("NEWLINE")))]);
+const tokens = [...tokenStream.filter(t => !(t.is("WS") || t.is("NEWLINE")))];
+for (let token of tokens) {
+  console.log(token.toString());
+}

@@ -10,6 +10,10 @@ class Token {
       ? this.is(t => t.type === predicate)
       : predicate(this);
   }
+
+  toString(): string {
+    return `(${this.type} ${this.value})`;
+  }
 }
 
 export default Token;

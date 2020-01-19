@@ -3,7 +3,7 @@ import Token from "./Token";
 class TokenStream {
   private cursor = 0;
 
-  constructor(private tokens: Token[] = []) {}
+  constructor(public tokens: Token[] = []) {}
 
   currentToken(moveCursor: boolean = false): Token {
     const token = this.tokens[this.cursor];
