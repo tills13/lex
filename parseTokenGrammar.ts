@@ -5,10 +5,10 @@ export enum State {
   String
 }
 
-export type RawTokenGrammar = Record<string, string>;
+export type RawGrammar = Record<string, string>;
 
-export default function parseTokenGrammar(grammar: string): RawTokenGrammar {
-  const _grammar: RawTokenGrammar = {};
+export default function parseGrammar(grammar: string): RawGrammar {
+  const _grammar: RawGrammar = {};
 
   let index = -1;
   let currentNode: string | undefined;
@@ -37,9 +37,7 @@ export default function parseTokenGrammar(grammar: string): RawTokenGrammar {
     // starting a string or terminating a string.
     if (char === '"') {
       if (grammar.charAt(index - 1) === "\\") {
-        // buffer.pop() // pop "
-        // buffer.pop() // pop \
-        // buffer.push('"')
+        // ...
       } else {
         if (state === State.String) {
           state = prevState || State.Parsing;

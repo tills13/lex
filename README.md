@@ -48,3 +48,38 @@ _Token Output_ (with `NEWLINES` and `WS` tokens filtered)
 (INTLITERAL 2)
 (SEPARATOR ))
 ```
+
+## Parser
+
+The syntactical analysis part of this repo.
+
+### Grammar
+
+Similar to the token grammar, however, instead of regular expressions, you build structure through recursion and references. The syntax is similar to regular expressions.
+
+See `example.grammar` for a basic example.
+
+For example,
+
+```
+Digit:
+  "0" | "1" | "2" | "3" | "4" |
+  "5" | "6" | "7" | "8" | "9" ;
+```
+
+Describes a single digit literal. Following, you might use
+
+```
+DigitLiteralOfLengthGreaterThanOne:
+  Digit Digit+;
+```
+
+To describe number literals in your language that look like `10` or `100` or `09` (but not 1..9). _Note_ as of writing this, this doesn't work.
+
+Unquoted values on the RHS represent references to other rules. For example, in the above, `Digit` in `DigitLiteralOfLengthGreaterThanOne` refers to and will expand by `Digit`. As of right now, there's no differences between Pascal, camel, or other cased references. Other context-free grammars might impose conventions like "start terminal symbols with a lowercased character".
+
+Quoted fragments on the RHS represent literal values. _example_, `Expression: Digit "+" Digit` matches expressions that looks like `0 + 1` (and so on).
+
+A `?` can be used to mark a fragment as optional. _example_ `DecimalLiteral: Digit? "." Digit Digit+` matches expressions like `0.5`, `0.54`, `.5`, `.54`, and so on.
+
+`Parser#parse` uses a Shift-Reduce algorithm to syntactically analyze the input.

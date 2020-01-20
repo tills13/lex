@@ -1,0 +1,47 @@
+# parser grammar
+
+Program: Lines;
+
+Lines: Line+;
+Line: Statement ";";
+
+Letters: Letter+;
+Letter: UppercaseLetter | LowercaseLetter;
+
+UppercaseLetter:
+  "A" | "B" | "C" | "D" | "E" | "F" |
+  "G" | "H" | "I" | "J" | "K" | "L" |
+  "M" | "N" | "O" | "P" | "Q" | "R" |
+  "S" | "T" | "U" | "V" | "W" | "X" |
+  "Y" | "Z";
+
+LowercaseLetter:
+  "a" | "b" | "c" | "d" | "e" | "f" |
+  "g" | "h" | "i" | "j" | "k" | "l" |
+  "m" | "n" | "o" | "p" | "q" | "r" |
+  "s" | "t" | "u" | "v" | "w" | "x" |
+  "y" | "z";
+
+Statement: AdditionExpression | MultiplicationExpression;
+
+AdditionExpression: Digit "+" Digit;
+MultiplicationExpression: Digit "*" Digit;
+
+# NumericLiteral: Digit
+
+Digit:
+  "0" | "1" | "2" | "3" | "4" |
+  "5" | "6" | "7" | "8" | "9" ;
+
+# MathExpression:
+
+
+# IfStatement: "if" L_PARENS boolean R_PARENS Block;
+# Block: "{" Lines "}";
+
+# Keyword: "keyword";
+# Digit: [0-9];
+# Digits: Digit [Digit];
+# boolean: "true" | "false";
+# L_PARENS: "(";
+# R_PARENS: ")";

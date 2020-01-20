@@ -25,7 +25,7 @@ function maximumMatch(matches: Record<string, RegExpMatchArray | null>) {
 class Lexer {
   public constructor(private tokenGrammar: CompiledTokenGrammar) {}
 
-  public tokenize(program: string): TokenStream {
+  public tokenize(program: string, opts: { trim: boolean }): TokenStream {
     const tokenStream = new TokenStream();
 
     let programBuffer = program;
@@ -56,6 +56,11 @@ class Lexer {
       );
 
       programBuffer = programBuffer.substring(match.matchLength);
+
+      if (opts.trim) {
+        programBuffer.trim();
+      }
+
       currentOffset += match.matchLength;
     }
 
