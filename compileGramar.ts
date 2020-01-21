@@ -29,30 +29,28 @@ interface ComplexRule extends BaseRule {
 export type Rule = ComplexRule | LiteralRule | OrRule | RefRule;
 export type CompiledGrammar = Record<string, Rule>;
 
-function resolveRule(rawRuleFragment: string): Rule {
+function resolveRule(fragment: string): Rule {
   let resolvedRule: Rule;
 
-  if (rawRuleFragment.endsWith("+")) {
-    resolvedRule = resolveRule(
-      rawRuleFragment.substring(0, rawRuleFragment.length - 1)
-    );
-    resolvedRule.repeats = true;
-  } else if (rawRuleFragment.endsWith("?")) {
-    resolvedRule = resolveRule(
-      rawRuleFragment.substring(0, rawRuleFragment.length - 1)
-    );
+  if (fragment.endsWith("*")) {
+    resolvedRule = resolveRule(fragment.substring(0, fragment.length - 1));
     resolvedRule.optional = true;
-  } else if (rawRuleFragment.startsWith('"')) {
+    resolvedRule.repeats = true;
+  } else if (fragment.endsWith("+")) {
+    resolvedRule = resolveRule(fragment.substring(0, fragment.length - 1));
+    resolvedRule.repeats = true;
+  } else if (fragment.endsWith("?")) {
+    resolvedRule = resolveRule(fragment.substring(0, fragment.length - 1));
+    resolvedRule.optional = true;
+  } else if (fragment.startsWith('"')) {
     resolvedRule = {
       __type: "literal",
-      value: rawRuleFragment.substring(1, rawRuleFragment.length - 1)
+      value: fragment.substring(1, fragment.length - 1)
     };
-  } else if (rawRuleFragment.startsWith("(")) {
-    resolvedRule = resolveRule(
-      rawRuleFragment.substring(1, rawRuleFragment.length - 1)
-    );
+  } else if (fragment.startsWith("(")) {
+    resolvedRule = resolveRule(fragment.substring(1, fragment.length - 1));
   } else {
-    resolvedRule = { __type: "ref", target: rawRuleFragment };
+    resolvedRule = { __type: "ref", target: fragment };
   }
 
   return resolvedRule;

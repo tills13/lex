@@ -2,9 +2,14 @@ Parser written in TypeScript.
 
 Eventually I'd like this to include the full parser toolchain.
 
-Edit the input string in `index.ts` and edit the token file `example.tokens` as you see fit.
-
 ## Tokenizer
+
+### Usage
+
+```
+const lexer = new Lexer(compiledTokenGrammar);
+const tokenStream = lexer.tokenize(input, { trim });
+```
 
 ### Token Grammar
 
@@ -20,7 +25,7 @@ The RHS describes the token either via REGEX or via one-or-many literals
 
 The right hand side must be terminated by a semi-colon.
 
-See `example.tokens` for a complete example. The language described looks like TypeScript.
+See `examples/example.tokens` for a complete example. The language described looks like TypeScript.
 
 _Input_
 
@@ -29,7 +34,7 @@ const x = -10.5
 console.log("the answer to x + 2 is", x + 2)
 ```
 
-_Token Output_ (with `NEWLINES` and `WS` tokens filtered)
+_Token Output_ (with `NEWLINES` and `WS` tokens filtered or `LexerOptions#trim` enabled)
 
 ```
 (KEYWORD const)
@@ -53,11 +58,18 @@ _Token Output_ (with `NEWLINES` and `WS` tokens filtered)
 
 The syntactical analysis part of this repo.
 
+### Usage
+
+```
+const parser = new Parser(compiledGrammar);
+parser.parse(tokenStream);
+```
+
 ### Grammar
 
 Similar to the token grammar, however, instead of regular expressions, you build structure through recursion and references. The syntax is similar to regular expressions.
 
-See `example.grammar` for a basic example.
+See `examples/example.grammar` for a basic example.
 
 For example,
 
@@ -67,19 +79,26 @@ Digit:
   "5" | "6" | "7" | "8" | "9" ;
 ```
 
-Describes a single digit literal. Following, you might use
+Describes a single digit literal. Following,
 
 ```
-DigitLiteralOfLengthGreaterThanOne:
+DigitLiteral1:
   Digit Digit+;
+
+DigitLiteral2:
+  Digit Digit*;
 ```
 
-To describe number literals in your language that look like `10` or `100` or `09` (but not 1..9). _Note_ as of writing this, this doesn't work.
+`DigitLiteral1` describes number literals in your language that look like `10` or `100` or `09` (but not 1..9). That is, the `+` symbol is equivalent to "one or many" of the preceding symbol.
+
+`DigitLiteral2` describes pretty much any integer including sequences starting with `0` e.g. `01`. That is, the `*` symbol is equivalent to "zero or many" of the preceding symbol.
+
+_Note_ as of writing this, neither of these operators work.
 
 Unquoted values on the RHS represent references to other rules. For example, in the above, `Digit` in `DigitLiteralOfLengthGreaterThanOne` refers to and will expand by `Digit`. As of right now, there's no differences between Pascal, camel, or other cased references. Other context-free grammars might impose conventions like "start terminal symbols with a lowercased character".
 
 Quoted fragments on the RHS represent literal values. _example_, `Expression: Digit "+" Digit` matches expressions that looks like `0 + 1` (and so on).
 
-A `?` can be used to mark a fragment as optional. _example_ `DecimalLiteral: Digit? "." Digit Digit+` matches expressions like `0.5`, `0.54`, `.5`, `.54`, and so on.
+A `?` can be used to mark a fragment as optional. _example_ `DecimalLiteral: Digit? "." Digit Digit*` matches expressions like `0.5`, `0.54`, `.5`, `.54`, and so on.
 
 `Parser#parse` uses a Shift-Reduce algorithm to syntactically analyze the input.

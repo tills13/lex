@@ -31,6 +31,10 @@ class Lexer {
     let programBuffer = program;
     let currentOffset = 0;
 
+    if (opts.trim) {
+      programBuffer = programBuffer.replace("\n", "").trim();
+    }
+
     while (programBuffer) {
       const matches: Record<string, RegExpMatchArray | null> = {};
 
@@ -58,7 +62,7 @@ class Lexer {
       programBuffer = programBuffer.substring(match.matchLength);
 
       if (opts.trim) {
-        programBuffer.trim();
+        programBuffer = programBuffer.replace("\n", "").trim();
       }
 
       currentOffset += match.matchLength;
