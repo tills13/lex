@@ -1,10 +1,15 @@
-import { RawGrammar } from "./parseTokenGrammar";
+import { RawGrammar } from "./parseGrammar";
+import Token from "./Token";
+import Stack from "./Stack";
 
 interface BaseRule {
+  name: string;
   optional?: boolean;
   parent?: Rule;
   repeats?: boolean;
 }
+
+// type AnonymousRule = Partia;
 
 interface LiteralRule extends BaseRule {
   __type: "literal";
@@ -43,10 +48,8 @@ function resolveRule(fragment: string): Rule {
     resolvedRule = resolveRule(fragment.substring(0, fragment.length - 1));
     resolvedRule.optional = true;
   } else if (fragment.startsWith('"')) {
-    resolvedRule = {
-      __type: "literal",
-      value: fragment.substring(1, fragment.length - 1)
-    };
+    const value = fragment.substring(1, fragment.length - 1);
+    resolvedRule = { __type: "literal", value };
   } else if (fragment.startsWith("(")) {
     resolvedRule = resolveRule(fragment.substring(1, fragment.length - 1));
   } else {
@@ -56,7 +59,7 @@ function resolveRule(fragment: string): Rule {
   return resolvedRule;
 }
 
-function parseRule(rawRulePart: string, parent?: Rule): Rule {
+function parseRule(rawRulePart: string, parent?: Rule): Partial<Rule> {
   const parts = rawRulePart.split(" ");
   const ruleParts: Array<Rule> = [];
 
@@ -70,28 +73,21 @@ function parseRule(rawRulePart: string, parent?: Rule): Rule {
     return ruleParts[0];
   }
 
-  return {
-    __type: "complex",
-    rules: ruleParts
-  };
+  return { __type: "complex", rules: ruleParts };
 }
 
-function compileGrammar(grammar: RawGrammar): CompiledGrammar {
-  const compiledGrammar: Record<string, Rule | undefined> = {};
+function compileGrammar(rawGrammar: RawGrammar): Rule[] {
+  const grammar: Rule[] = [];
 
-  // initialize
-  for (let ruleName in grammar) {
-    compiledGrammar[ruleName] = undefined;
-  }
-
-  for (let ruleName in grammar) {
-    const rule = grammar[ruleName].replace("\n", "").trim();
+  for (let ruleName in rawGrammar) {
+    const rule = rawGrammar[ruleName].replace("\n", "").trim();
     const ruleCases = rule.split(/(?: )*\|(?: )*/g);
 
-    let compiledRule: Rule;
+    let compiledRule: Partial<Rule> = { name: ruleName };
 
     if (ruleCases.length > 1) {
-      compiledRule = { __type: "or", rules: [] };
+      compiledRule = { ...compiledRule, __type: "or", rules: [] };
+
       for (let ruleCase of ruleCases) {
         compiledRule.rules.push(parseRule(ruleCase, compiledRule));
       }
@@ -99,16 +95,12 @@ function compileGrammar(grammar: RawGrammar): CompiledGrammar {
       compiledRule = parseRule(ruleCases[0]);
     }
 
-    compiledGrammar[ruleName] = compiledRule;
+    compiledRule.name = ruleName;
 
-    // if (ruleParts.length === 1) {
-    //   compiledGrammar[ruleName] = ruleParts[0];
-    // } else {
-    //   compiledGrammar[ruleName] =
-    // }
+    grammar.push(compiledRule as Rule);
   }
 
-  return compiledGrammar as CompiledGrammar;
+  return grammar;
 }
 
 export default compileGrammar;

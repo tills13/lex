@@ -65,7 +65,10 @@ export default function parseGrammar(grammar: string): RawGrammar {
         continue;
       }
 
-      const part = buffer.slice(0, buffer.length - 1).join("");
+      const part = buffer
+        .slice(0, buffer.length - 1)
+        .join("")
+        .trim();
 
       currentNode = part;
 

@@ -1,4 +1,4 @@
-import { RawGrammar } from "./parseTokenGrammar";
+import { RawGrammar } from "./parseGrammar";
 
 const ESCAPED_QUOTE_MARKER = "$_$_$";
 const ESCAPED_QUOTE_MARKER_REGEXP = new RegExp(`\\$_\\$_\\$`, "g");
