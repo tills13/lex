@@ -5,28 +5,25 @@ import Stack from "./Stack";
 interface BaseRule {
   name: string;
   optional?: boolean;
-  parent?: Rule;
   repeats?: boolean;
 }
 
-// type AnonymousRule = Partia;
-
-interface LiteralRule extends BaseRule {
+export interface LiteralRule extends BaseRule {
   __type: "literal";
   value: string;
 }
 
-interface RefRule extends BaseRule {
+export interface RefRule extends BaseRule {
   __type: "ref";
   target: string;
 }
 
-interface OrRule extends BaseRule {
+export interface OrRule extends BaseRule {
   __type: "or";
   rules: Array<Rule>;
 }
 
-interface ComplexRule extends BaseRule {
+export interface ComplexRule extends BaseRule {
   __type: "complex";
   rules: Array<Rule>;
 }
@@ -59,13 +56,12 @@ function resolveRule(fragment: string): Rule {
   return resolvedRule;
 }
 
-function parseRule(rawRulePart: string, parent?: Rule): Partial<Rule> {
+function parseRule(rawRulePart: string): Partial<Rule> {
   const parts = rawRulePart.split(" ");
   const ruleParts: Array<Rule> = [];
 
   for (let part of parts) {
     const rule = resolveRule(part);
-    rule.parent = parent;
     ruleParts.push(rule);
   }
 

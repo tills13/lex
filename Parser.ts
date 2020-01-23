@@ -1,13 +1,12 @@
 import util from "util";
 
-import { CompiledGrammar, Rule } from "./compileGramar";
+import { RefRule, Rule } from "./compileGramar";
 import Token from "./Token";
 import Stack from "./Stack";
 import TokenStream from "./TokenStream";
 
 interface Node {
   name: string;
-  parent?: Node;
   children?: Array<Token | Node>;
 }
 
@@ -28,6 +27,7 @@ class Parser {
   }
 
   compileToRegexString(rule: Rule): string {
+    // console.log("this.compileToRegexString", rule.name);
     if (rule.__type === "complex") {
       throw new Error("cannot generate RegEx for complex rule");
     }
@@ -64,7 +64,7 @@ class Parser {
 
       for (let ruleIdx = rule.rules.length - 1; ruleIdx >= 0; ruleIdx--) {
         if (!this.match(rule.rules[ruleIdx], tempStack)) {
-          continue;
+          return false;
         }
 
         tempStack.pop();
@@ -73,23 +73,25 @@ class Parser {
       return true;
     }
 
+    const t = stack.peek()!;
+    if (!(t instanceof Token)) {
+      if (t.name === (rule as RefRule).target) {
+        return true;
+      }
+
+      return false;
+    }
+
     const ruleRegexStr = this.compileToRegexString(rule);
     const ruleRegex = new RegExp(`^${ruleRegexStr}$`);
 
     if (rule.__type === "ref") {
-      const t = stack.peek();
-      if (t instanceof Token) {
-        if (ruleRegex.test((stack.peek() as Token)!.value)) {
-          return true;
-        }
-      } else {
-        if (t.name === rule.name) {
-          return true;
-        }
+      if (ruleRegex.test(t.value)) {
+        return true;
       }
     }
 
-    if (ruleRegex.test((stack.peek() as Token)!.value)) {
+    if (ruleRegex.test(t.value)) {
       return true;
     }
 
@@ -101,14 +103,17 @@ class Parser {
 
     while (currenToken) {
       this.stack.push(currenToken);
-      this.reduce();
 
       console.log(util.inspect(this.stack, { colors: true }));
+
+      this.reduce();
 
       currenToken = tokenStream.nextToken();
     }
 
     this.reduce();
+
+    return this.stack;
   }
 
   public reduce() {
@@ -116,6 +121,7 @@ class Parser {
       for (let rule of this.grammar) {
         if (this.match(rule, this.stack)) {
           const children = [];
+
           if (rule.__type === "complex") {
             for (let i = 0; i < rule.rules.length; i++) {
               children.push(this.stack.pop());
@@ -124,7 +130,10 @@ class Parser {
             children.push(this.stack.pop());
           }
 
-          this.stack.push({ name: rule.name, children } as Node);
+          this.stack.push({
+            name: rule.name,
+            children: children.reverse()
+          } as Node);
           break outer;
         }
       }
