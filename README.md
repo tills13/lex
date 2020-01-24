@@ -101,4 +101,8 @@ Quoted fragments on the RHS represent literal values. _example_, `Expression: Di
 
 A `?` can be used to mark a fragment as optional. _example_ `DecimalLiteral: Digit? "." Digit Digit*` matches expressions like `0.5`, `0.54`, `.5`, `.54`, and so on.
 
+If the RHS of the rule (the identifier) begins with an uppercase letter, the rule is considered a (terminal) token reference. These rules can reference other token references but not other rule references.
+
+If the LFS of the rule (the identifier) begins with a lowercase letter, the rule is considered a rule reference. Rule references can reference other rule references as well as Token References.
+
 `Parser#parse` uses a Shift-Reduce algorithm to syntactically analyze the input.

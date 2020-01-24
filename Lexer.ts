@@ -22,10 +22,15 @@ function maximumMatch(matches: Record<string, RegExpMatchArray | null>) {
   return t;
 }
 
+const defaultTokenizeOpts = { trim: true };
+
 class Lexer {
   public constructor(private tokenGrammar: CompiledTokenGrammar) {}
 
-  public tokenize(program: string, opts: { trim: boolean }): TokenStream {
+  public tokenize(
+    program: string,
+    opts: { trim?: boolean } = defaultTokenizeOpts
+  ): TokenStream {
     const tokenStream = new TokenStream();
 
     let programBuffer = program;

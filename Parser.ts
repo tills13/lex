@@ -1,6 +1,6 @@
 import util from "util";
 
-import { RefRule, Rule } from "./compileGramar";
+import { RefRule, Rule } from "./compileGrammar";
 import Token from "./Token";
 import Stack from "./Stack";
 import TokenStream from "./TokenStream";
@@ -26,18 +26,33 @@ class Parser {
     console.log(util.inspect(this.grammar, { colors: true, depth: 10 }));
   }
 
-  compileToRegexString(rule: Rule): string {
-    // console.log("this.compileToRegexString", rule.name);
-    if (rule.__type === "complex") {
-      throw new Error("cannot generate RegEx for complex rule");
-    }
+  compileToRegexString(rule: Rule, parent?: Rule): string {
+    // if (rule.__type === "complex") {
+    //   if (rule.name[0].toLowerCase() === rule.name[0]) {
+    //     // non-terminal symbol
+    //     throw new Error(
+    //       "cannot generate RegEx for complex non-terminal rule reference " +
+    //         rule.name
+    //     );
+    //   }
+    // }
 
     switch (rule!.__type) {
-      case "literal":
+      case "complex": {
+        let ruleRegexes = [];
+
+        for (let subRule of rule.rules) {
+          ruleRegexes.push(this.compileToRegexString(subRule));
+        }
+
+        return "^" + ruleRegexes.join("") + "$";
+      }
+      case "literal": {
         return rule.value.replace(
           REGEXP_SPECIAL_CHARS_REGEXP,
           char => "\\" + char
         );
+      }
       // const regex =
       case "or":
         let ruleRegexes = [];
@@ -46,11 +61,24 @@ class Parser {
           ruleRegexes.push(this.compileToRegexString(subRule));
         }
 
-        return `(${ruleRegexes.join("|")})`;
+        return `(?:${ruleRegexes.join("|")})`;
       case "ref":
-        return this.compileToRegexString(
-          this.grammar.find(r => r.name === rule.target)!
-        );
+        const target = this.grammar.find(r => r.name === rule.target)!;
+        let targetRegexStr = this.compileToRegexString(target);
+
+        // optional - ?
+        // repeats - +
+        // optional + repeats - *
+
+        if (rule.optional && rule.repeats) {
+          targetRegexStr = `(?:${targetRegexStr})*`;
+        } else if (rule.optional) {
+          targetRegexStr = `(?:${targetRegexStr})?`;
+        } else if (rule.repeats) {
+          targetRegexStr = `(?:${targetRegexStr})+`;
+        }
+
+        return targetRegexStr;
     }
   }
 
@@ -119,6 +147,11 @@ class Parser {
   public reduce() {
     outer: while (true) {
       for (let rule of this.grammar) {
+        // terminal symbols are not applied in the grammar
+        if (rule.name[0].toUpperCase() === rule.name[0]) {
+          continue;
+        }
+
         if (this.match(rule, this.stack)) {
           const children = [];
 

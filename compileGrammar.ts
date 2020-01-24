@@ -1,6 +1,9 @@
+import fs from "fs";
+
 import { RawGrammar } from "./parseGrammar";
 import Token from "./Token";
 import Stack from "./Stack";
+import { SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION } from "constants";
 
 interface BaseRule {
   name: string;
@@ -18,7 +21,7 @@ export interface RefRule extends BaseRule {
   target: string;
 }
 
-export interface OrRule extends BaseRule {
+export interface AlternativesRule extends BaseRule {
   __type: "or";
   rules: Array<Rule>;
 }
@@ -28,11 +31,11 @@ export interface ComplexRule extends BaseRule {
   rules: Array<Rule>;
 }
 
-export type Rule = ComplexRule | LiteralRule | OrRule | RefRule;
+export type Rule = ComplexRule | LiteralRule | AlternativesRule | RefRule;
 export type CompiledGrammar = Record<string, Rule>;
 
-function resolveRule(fragment: string): Rule {
-  let resolvedRule: Rule;
+function resolveRule(fragment: string): Partial<Rule> {
+  let resolvedRule: Partial<Rule>;
 
   if (fragment.endsWith("*")) {
     resolvedRule = resolveRule(fragment.substring(0, fragment.length - 1));
@@ -62,7 +65,7 @@ function parseRule(rawRulePart: string): Partial<Rule> {
 
   for (let part of parts) {
     const rule = resolveRule(part);
-    ruleParts.push(rule);
+    ruleParts.push(rule as Rule);
   }
 
   if (ruleParts.length === 1) {
@@ -72,31 +75,61 @@ function parseRule(rawRulePart: string): Partial<Rule> {
   return { __type: "complex", rules: ruleParts };
 }
 
-function compileGrammar(rawGrammar: RawGrammar): Rule[] {
+function writeDeclarations(grammar: Rule[]) {
+  const out = fs.openSync("./grammar.compiled.ts", "w");
+
+  fs.writeSync(out, "export enum Symbols {\n");
+
+  for (let idx = 0; idx < grammar.length; idx++) {
+    const rule = grammar[idx];
+    fs.writeSync(out, `  ${rule.name} = '${rule.name}',\n`);
+  }
+
+  fs.writeSync(out, "};\n");
+
+  fs.closeSync(out);
+}
+
+interface CompileGrammarOptions {
+  writeDeclarationFile?: boolean;
+}
+
+export default function compileGrammar(
+  rawGrammar: RawGrammar,
+  opts: CompileGrammarOptions
+): Rule[] {
   const grammar: Rule[] = [];
 
   for (let ruleName in rawGrammar) {
     const rule = rawGrammar[ruleName].replace("\n", "").trim();
-    const ruleCases = rule.split(/(?: )*\|(?: )*/g);
+    const alternatives = rule.split(/(?: )*\|(?: )*/g);
 
     let compiledRule: Partial<Rule> = { name: ruleName };
 
-    if (ruleCases.length > 1) {
-      compiledRule = { ...compiledRule, __type: "or", rules: [] };
+    if (alternatives.length > 1) {
+      compiledRule = {
+        ...compiledRule,
+        __type: "or",
+        rules: []
+      } as AlternativesRule;
 
-      for (let ruleCase of ruleCases) {
-        compiledRule.rules.push(parseRule(ruleCase, compiledRule));
+      for (let idx in alternatives) {
+        const alternative = alternatives[idx];
+        compiledRule.rules!.push({
+          name: `${ruleName}${idx}`,
+          ...parseRule(alternative)
+        } as Rule);
       }
     } else {
-      compiledRule = parseRule(ruleCases[0]);
+      compiledRule = { ...compiledRule, ...parseRule(alternatives[0]) };
     }
-
-    compiledRule.name = ruleName;
 
     grammar.push(compiledRule as Rule);
   }
 
+  if (opts.writeDeclarationFile) {
+    writeDeclarations(grammar);
+  }
+
   return grammar;
 }
-
-export default compileGrammar;
