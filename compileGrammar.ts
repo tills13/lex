@@ -3,7 +3,6 @@ import fs from "fs";
 import { RawGrammar } from "./parseGrammar";
 import Token from "./Token";
 import Stack from "./Stack";
-import { SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION } from "constants";
 
 interface BaseRule {
   name: string;
@@ -33,6 +32,49 @@ export interface ComplexRule extends BaseRule {
 
 export type Rule = ComplexRule | LiteralRule | AlternativesRule | RefRule;
 export type CompiledGrammar = Record<string, Rule>;
+
+export function canCompileRule(
+  allRules: Rule[],
+  rule: Rule,
+  seen: string[] = []
+): boolean {
+  if (seen.includes(rule.name)) {
+    return false;
+  }
+
+  switch (rule.__type) {
+    case "complex": {
+      seen.push(rule.name);
+
+      for (const subRule of rule.rules) {
+        if (subRule.__type === "literal") {
+          return false;
+        }
+
+        if (!canCompileRule(allRules, subRule, seen)) {
+          return false;
+        }
+      }
+
+      break;
+    }
+    case "or": {
+      for (const subRule of rule.rules) {
+        if (!canCompileRule(allRules, subRule, seen)) {
+          return false;
+        }
+      }
+
+      break;
+    }
+    case "ref": {
+      const target = allRules.find(r => r.name === rule.target);
+      return !!target && canCompileRule(allRules, target, seen);
+    }
+  }
+
+  return true;
+}
 
 function resolveRule(fragment: string): Partial<Rule> {
   let resolvedRule: Partial<Rule>;
@@ -100,8 +142,8 @@ export default function compileGrammar(
 ): Rule[] {
   const grammar: Rule[] = [];
 
-  for (let ruleName in rawGrammar) {
-    const rule = rawGrammar[ruleName].replace("\n", "").trim();
+  for (let [ruleName, rawRule] of rawGrammar) {
+    const rule = rawRule.replace("\n", "").trim();
     const alternatives = rule.split(/(?: )*\|(?: )*/g);
 
     let compiledRule: Partial<Rule> = { name: ruleName };
@@ -114,10 +156,14 @@ export default function compileGrammar(
       } as AlternativesRule;
 
       for (let idx in alternatives) {
-        const alternative = alternatives[idx];
+        const rawAlt = alternatives[idx];
+        const alternative = parseRule(rawAlt);
         compiledRule.rules!.push({
-          name: `${ruleName}${idx}`,
-          ...parseRule(alternative)
+          name:
+            alternative.__type === "ref"
+              ? alternative.target
+              : `${ruleName}${idx}`,
+          ...alternative
         } as Rule);
       }
     } else {

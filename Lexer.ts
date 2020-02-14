@@ -43,8 +43,7 @@ class Lexer {
     while (programBuffer) {
       const matches: Record<string, RegExpMatchArray | null> = {};
 
-      for (let tokenName in this.tokenGrammar) {
-        const matcher = this.tokenGrammar[tokenName];
+      for (let [tokenName, matcher] of this.tokenGrammar) {
         matches[tokenName] = programBuffer.match(matcher);
       }
 

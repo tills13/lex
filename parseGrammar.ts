@@ -5,10 +5,10 @@ export enum State {
   String
 }
 
-export type RawGrammar = Record<string, string>;
+export type RawGrammar = Array<[string, string]>;
 
 export default function parseGrammar(grammar: string): RawGrammar {
-  const _grammar: RawGrammar = {};
+  const _grammar: RawGrammar = [];
 
   let index = -1;
   let currentNode: string | undefined;
@@ -88,7 +88,7 @@ export default function parseGrammar(grammar: string): RawGrammar {
         throw new Error("invalid token grammar");
       }
 
-      _grammar[currentNode] = part;
+      _grammar.push([currentNode, part]);
 
       index += 1; // consume the ";"
       buffer = [];

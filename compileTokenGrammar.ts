@@ -9,7 +9,7 @@ const REGEXP_SPECIAL_CHARS_REGEXP = new RegExp(
   "g"
 );
 
-export type CompiledTokenGrammar = Record<string, RegExp>;
+export type CompiledTokenGrammar = Array<[string, RegExp]>;
 
 function processRule(rawRule: string): RegExp {
   const ruleRegex = rawRule
@@ -27,13 +27,14 @@ function processRule(rawRule: string): RegExp {
   return new RegExp(`^(${ruleRegex})`);
 }
 
-export default function compileTokenGrammar(tokenGrammar: RawGrammar) {
-  const compiledGrammar: CompiledTokenGrammar = {};
+function compileTokenGrammar(tokenGrammar: RawGrammar): CompiledTokenGrammar {
+  const compiledGrammar: CompiledTokenGrammar = [];
 
-  for (let rule in tokenGrammar) {
-    const rawRule = tokenGrammar[rule];
-    compiledGrammar[rule] = processRule(rawRule);
+  for (let [ruleName, rawRule] of tokenGrammar) {
+    compiledGrammar.push([ruleName, processRule(rawRule)]);
   }
 
   return compiledGrammar;
 }
+
+export default compileTokenGrammar;

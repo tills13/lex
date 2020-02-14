@@ -1,13 +1,13 @@
 import util from "util";
 
-import { RefRule, Rule } from "./compileGrammar";
+import { RefRule, Rule, canCompileRule } from "./compileGrammar";
 import Token from "./Token";
 import Stack from "./Stack";
 import TokenStream from "./TokenStream";
 
 interface Node {
   name: string;
-  children?: Array<Token | Node>;
+  children: Array<Token | Node>;
 }
 
 type ParserStack = Stack<Token | Node>;
@@ -18,25 +18,22 @@ const REGEXP_SPECIAL_CHARS_REGEXP = new RegExp(
   "g"
 );
 
+function printStack(stack: ParserStack) {
+  console.log(
+    stack.stack.map(t => (t instanceof Token ? t.value : t.name)).join(" ")
+  );
+}
+
 class Parser {
   private stack: ParserStack = new Stack();
   private lookahead: number = 1;
 
   constructor(private grammar: Rule[]) {
-    console.log(util.inspect(this.grammar, { colors: true, depth: 10 }));
+    // console.log(grammar);
+    // console.log(util.inspect(this.grammar, { colors: true, depth: 10 }));
   }
 
-  compileToRegexString(rule: Rule, parent?: Rule): string {
-    // if (rule.__type === "complex") {
-    //   if (rule.name[0].toLowerCase() === rule.name[0]) {
-    //     // non-terminal symbol
-    //     throw new Error(
-    //       "cannot generate RegEx for complex non-terminal rule reference " +
-    //         rule.name
-    //     );
-    //   }
-    // }
-
+  public compileToRegexString(rule: Rule, parent?: Rule): string {
     switch (rule!.__type) {
       case "complex": {
         let ruleRegexes = [];
@@ -47,14 +44,15 @@ class Parser {
 
         return "^" + ruleRegexes.join("") + "$";
       }
+
       case "literal": {
         return rule.value.replace(
           REGEXP_SPECIAL_CHARS_REGEXP,
           char => "\\" + char
         );
       }
-      // const regex =
-      case "or":
+
+      case "or": {
         let ruleRegexes = [];
 
         for (let subRule of rule.rules) {
@@ -62,7 +60,9 @@ class Parser {
         }
 
         return `(?:${ruleRegexes.join("|")})`;
-      case "ref":
+      }
+
+      case "ref": {
         const target = this.grammar.find(r => r.name === rule.target)!;
         let targetRegexStr = this.compileToRegexString(target);
 
@@ -79,45 +79,67 @@ class Parser {
         }
 
         return targetRegexStr;
+      }
     }
   }
 
-  match(rule: Rule, stack: ParserStack): boolean {
+  public match(rule: Rule, stack: ParserStack): boolean {
     if (rule.__type === "complex") {
-      if (rule.rules.length > stack.size()) {
-        return false;
-      }
-
-      const tempStack = stack.clone();
-
-      for (let ruleIdx = rule.rules.length - 1; ruleIdx >= 0; ruleIdx--) {
-        if (!this.match(rule.rules[ruleIdx], tempStack)) {
+      if (!canCompileRule(this.grammar, rule)) {
+        if (rule.rules.length > stack.size()) {
           return false;
         }
 
-        tempStack.pop();
-      }
+        const tempStack = stack.clone();
 
-      return true;
+        for (let ruleIdx = rule.rules.length - 1; ruleIdx >= 0; ruleIdx--) {
+          if (!this.match(rule.rules[ruleIdx], tempStack)) {
+            return false;
+          }
+
+          tempStack.pop();
+        }
+
+        return true;
+      }
     }
 
     const t = stack.peek()!;
+
     if (!(t instanceof Token)) {
-      if (t.name === (rule as RefRule).target) {
-        return true;
+      if (rule.__type === "ref") {
+        return rule.target === t.name;
+      }
+
+      if (rule.__type === "literal") {
+        const target = t.children[0];
+
+        if (target instanceof Token) {
+          return rule.value === target.value;
+        }
+
+        return false;
+      }
+
+      if (rule.__type === "or") {
+        for (let r of rule.rules) {
+          if (this.match(r, this.stack)) {
+            return true;
+          }
+        }
+
+        return false;
       }
 
       return false;
     }
 
+    if (!canCompileRule(this.grammar, rule)) {
+      return false;
+    }
+
     const ruleRegexStr = this.compileToRegexString(rule);
     const ruleRegex = new RegExp(`^${ruleRegexStr}$`);
-
-    if (rule.__type === "ref") {
-      if (ruleRegex.test(t.value)) {
-        return true;
-      }
-    }
 
     if (ruleRegex.test(t.value)) {
       return true;
@@ -145,6 +167,8 @@ class Parser {
   }
 
   public reduce() {
+    printStack(this.stack);
+
     outer: while (true) {
       for (let rule of this.grammar) {
         // terminal symbols are not applied in the grammar
@@ -153,9 +177,13 @@ class Parser {
         }
 
         if (this.match(rule, this.stack)) {
+          console.log("reducing with", rule.name);
           const children = [];
 
-          if (rule.__type === "complex") {
+          if (
+            rule.__type === "complex" &&
+            !canCompileRule(this.grammar, rule)
+          ) {
             for (let i = 0; i < rule.rules.length; i++) {
               children.push(this.stack.pop());
             }
@@ -167,7 +195,8 @@ class Parser {
             name: rule.name,
             children: children.reverse()
           } as Node);
-          break outer;
+
+          this.reduce();
         }
       }
 
